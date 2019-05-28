@@ -18,6 +18,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String TAG = "QuizActivity";
     private static final String KEY_INDEX = "index";
+    private static final String KEY_IS_ANSWERED = "IsAnswered";
     private static final int REQUEST_CODE_CHEAT = 0;
     private boolean mIsCheater;
 
@@ -29,12 +30,12 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     private Button mCheatButton;
 
     private Question[] mQuestionBank = new Question[]{
-            new Question(R.string.question_australia, true),
-            new Question(R.string.question_oceans, true),
-            new Question(R.string.question_mideast, false),
-            new Question(R.string.question_africa, false),
-            new Question(R.string.question_americas, true),
-            new Question(R.string.question_asia, true)
+            new Question(R.string.question_australia, true, false),
+            new Question(R.string.question_oceans, true, false),
+            new Question(R.string.question_mideast, false, false),
+            new Question(R.string.question_africa, false, false),
+            new Question(R.string.question_americas, true, false),
+            new Question(R.string.question_asia, true, false)
     };
     /**
      * 当前页数
@@ -48,6 +49,10 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_quiz);
         if (savedInstanceState != null) {
             mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
+            boolean[] answeredList = savedInstanceState.getBooleanArray(KEY_IS_ANSWERED);
+            for (int i = 0; i < answeredList.length; i++) {
+                mQuestionBank[i].setAnswered(answeredList[i]);
+            }
         }
         initView();
     }
@@ -84,10 +89,16 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
         Log.i(TAG, "onSaveInstanceState: ");
-        savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
+        outState.putInt(KEY_INDEX, mCurrentIndex);
+
+        boolean[] answeredList = new boolean[mQuestionBank.length];
+        for (int i = 0; i < answeredList.length; i++) {
+            answeredList[i] = mQuestionBank[i].isAnswered();
+        }
+        outState.putBooleanArray(KEY_IS_ANSWERED, answeredList);
     }
 
     @Override
@@ -152,12 +163,25 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * 当mCurrentIndex变动时候调用，更新问题题目
+     * 当mCurrentIndex变动时候调用，更新问题题目和按钮
      */
     private void updateQuestion() {
-        int question = mQuestionBank[mCurrentIndex].getTextResId();
-        String title = (mCurrentIndex + 1) + "." + getString(question);
+        Question question = mQuestionBank[mCurrentIndex];
+        String title = (mCurrentIndex + 1) + "." + getString(question.getTextResId());
         mQuestionTextView.setText(title);
+
+        mTrueButton.setEnabled(question.isAnswered() ? false : true);
+        mFalseButton.setEnabled(question.isAnswered() ? false : true);
+    }
+
+    /**
+     * 该题目已被回答过状态更新
+     */
+    private void updateBtn() {
+        mQuestionBank[mCurrentIndex].setAnswered(true);
+
+        mTrueButton.setEnabled(false);
+        mFalseButton.setEnabled(false);
     }
 
     /**
@@ -166,6 +190,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
      * @param userPressed 用户点击，true或者false
      */
     private void checkAnswer(boolean userPressed) {
+        updateBtn();
         //储存在Question中的答案
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
         int messageResId = 0;
